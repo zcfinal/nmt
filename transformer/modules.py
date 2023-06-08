@@ -73,9 +73,10 @@ class PosEncoding(nn.Module):
         # fix positional encoding: exclude weight from grad computation
         self.pos_enc.weight = nn.Parameter(torch.from_numpy(pos_enc), requires_grad=False)
 
-    def forward(self, input_len):
-        max_len = torch.max(input_len)
-        tensor = torch.cuda.LongTensor if input_len.is_cuda else torch.LongTensor
-        input_pos = tensor([list(range(1, len+1)) + [0]*(max_len-len) for len in input_len])
-
+    def forward(self, inputs):
+        mask = inputs.data.eq(0)
+        seq_len = mask.shape[1]
+        tensor = torch.cuda.LongTensor
+        input_pos = tensor([list(range(1, seq_len+1))]*mask.shape[0])
+        input_pos = torch.where(mask,0,input_pos)
         return self.pos_enc(input_pos)
