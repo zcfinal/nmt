@@ -7,7 +7,7 @@ CUDA_VISIBLE_DEVICES=2 python translate.py \
 --test_tgt '/data/zclfe/transformer/corpora/test_news_filtered.zh' \
 --src_vocab_size 32000 \
 --tgt_vocab_size 32000 \
---max_len 50 \
+--max_len 100 \
 --src_name eng \
 --tgt_name zh \
 -model_path '/data/zclfe/transformer/output/best.pth' \
@@ -15,5 +15,5 @@ CUDA_VISIBLE_DEVICES=2 python translate.py \
 -display_freq 500 \
 -lr 5e-5 \
 -max_epochs 100 \
--n_layers 8 \
+-n_layers 6 \
 -batch_size 1
