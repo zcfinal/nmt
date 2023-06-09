@@ -77,6 +77,11 @@ def parse_args():
     parser.add_argument('--lower_case', action='store_true')
     parser.add_argument('--seed', type=int, default=0)
 
+    #decode parameters
+    parser.add_argument('-decode_output', required=True, type=str, help='Path to write translated sequences' )
+    parser.add_argument('-n_best', type=int, default=1, help='Output the n_best decoded sentence')
+    parser.add_argument('-beam_size', type=int, default=5)
+    parser.add_argument('-max_decode_step', type=int, default=50, help='Maximum # of steps for decoding')
     args = parser.parse_args()
     set_seed(args.seed)
 

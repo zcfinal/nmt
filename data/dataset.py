@@ -64,6 +64,9 @@ class Tokenizer:
     def encode(self,text):
         return self.vocab.EncodeAsIds(text,add_bos=True,add_eos=True,emit_unk_piece=True)
 
+    def decode(self,input):
+        return self.vocab.Decode(input)
+
     def train(self, input_file, vocab_size, model_name, model_type, character_coverage):
         input_argument = '--input=%s --model_prefix=%s --vocab_size=%s --model_type=%s --character_coverage=%s ' \
                     '--pad_id=0 --unk_id=1 --bos_id=2 --eos_id=3 '
@@ -151,7 +154,13 @@ def get_dataloader(args):
     dev_dataloader = DataLoader(dev_dataset,batch_size=args.batch_size,collate_fn=collate_fn,shuffle=False)
     return train_dataloader,dev_dataloader
 
+def get_testdataloader(args):
+    dataset = TranslationDataset(args.test_src,args.test_tgt,args)
+    dataloader = DataLoader(dataset,batch_size=args.batch_size,collate_fn=collate_fn,shuffle=False)
+    return dataloader, dataset.target_corpora.tokenize
+
 
 if __name__=='__main__':
     args = parse_args()
-    TranslationDataset(args.train_src,args.train_tgt,args)
+    #TranslationDataset(args.train_src,args.train_tgt,args)
+    get_testdataloader(args)

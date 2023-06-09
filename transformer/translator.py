@@ -16,7 +16,7 @@ class Translator(object):
         self.tt = torch.cuda if use_cuda else torch
 
         checkpoint = torch.load(opt.model_path)
-        model_opt = checkpoint['opt']
+        model_opt = checkpoint['args']
 
         self.model_opt = model_opt
         model = Transformer(model_opt)
@@ -36,7 +36,8 @@ class Translator(object):
         ''' Translation work in one batch '''
 
         # Batch size is in different location depending on data.
-        enc_inputs, enc_inputs_len = src_batch
+        enc_inputs = src_batch.cuda()
+        enc_inputs_len = enc_inputs.shape[1]
         batch_size = enc_inputs.size(0) # enc_inputs: [batch_size x src_len]
         beam_size = self.opt.beam_size
 
@@ -61,11 +62,11 @@ class Translator(object):
             # Preparing decoded data_seq
             # size: [batch_size x beam_size x seq_len]
             dec_partial_inputs = torch.stack([
-                b.get_current_state() for b in beams if not b.done])
+                b.get_current_state() for b in beams if not b.done],0)
             # size: [batch_size * beam_size x seq_len]
             dec_partial_inputs = dec_partial_inputs.view(-1, len_dec_seq)
             # wrap into a Variable
-            dec_partial_inputs = Variable(dec_partial_inputs, volatile=True)
+            dec_partial_inputs = Variable(dec_partial_inputs)
 
             # Preparing decoded pos_seq
             # size: [1 x seq]
@@ -97,7 +98,7 @@ class Translator(object):
                 if beams[beam_idx].done:
                     continue
 
-                inst_idx = beam_inst_idx_map[beam_idx] # 해당 beam_idx 의 데이터가 실제 data 에서 몇번째 idx인지
+                inst_idx = beam_inst_idx_map[beam_idx] 
                 if not beams[beam_idx].advance(word_lk.data[inst_idx]):
                     active_beam_idx_list += [beam_idx]
 
@@ -124,7 +125,7 @@ class Translator(object):
                 active_seq_data = original_seq_data.index_select(0, active_inst_idxs)
                 active_seq_data = active_seq_data.view(*new_size)
 
-                return Variable(active_seq_data, volatile=True)
+                return Variable(active_seq_data)
 
             def update_active_enc_info(enc_info_var, active_inst_idxs):
                 ''' Remove the encoder outputs of finished instances in one batch. '''
@@ -139,7 +140,7 @@ class Translator(object):
                 active_enc_info_data = original_enc_info_data.index_select(0, active_inst_idxs)
                 active_enc_info_data = active_enc_info_data.view(*new_size)
 
-                return Variable(active_enc_info_data, volatile=True)
+                return Variable(active_enc_info_data)
 
             enc_inputs = update_active_seq(enc_inputs, active_inst_idxs)
             enc_outputs = update_active_enc_info(enc_outputs, active_inst_idxs)
@@ -155,7 +156,7 @@ class Translator(object):
             scores, tail_idxs = beams[beam_idx].sort_scores()
             all_scores += [scores[:n_best]]
 
-            hyps = [beams[beam_idx].get_hypothesis(i) for i in tail_idxs[:n_best]]
+            hyps = torch.stack([torch.stack(beams[beam_idx].get_hypothesis(i),0) for i in tail_idxs[:n_best]]).detach().cpu().tolist()
             all_hyp += [hyps]
 
         return all_hyp, all_scores

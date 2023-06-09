@@ -6,7 +6,6 @@
 
 import torch
 import numpy as np
-from data import data_utils
 
 
 class Beam(object):
@@ -25,8 +24,8 @@ class Beam(object):
         self.prev_ks = []
 
         # The outputs at each time-step.
-        self.next_ys = [self.tt.LongTensor(size).fill_(data_utils.PAD)]
-        self.next_ys[0][0] = data_utils.BOS
+        self.next_ys = [self.tt.LongTensor(size).fill_(0)]
+        self.next_ys[0][0] = 2
 
     def get_current_state(self):
         "Get the outputs for the current timestep."
@@ -56,12 +55,12 @@ class Beam(object):
 
         # bestScoresId is flattened beam_size * tgt_vocab_size array, so calculate
         # which word and beam each score came from
-        prev_k = best_scores_id / num_words
+        prev_k = best_scores_id // num_words
         self.prev_ks.append(prev_k)
         self.next_ys.append(best_scores_id - prev_k * num_words)
 
         # End condition is when top-of-beam is EOS.
-        if self.next_ys[-1][0] == data_utils.EOS:
+        if self.next_ys[-1][0] == 3:
             self.done = True
             self.all_scores.append(self.scores)
 
@@ -78,14 +77,13 @@ class Beam(object):
 
     def get_tentative_hypothesis(self):
         "Get the decoded sequence for the current timestep."
-
         if len(self.next_ys) == 1:
             dec_seq = self.next_ys[0].unsqueeze(1)
         else:
             _, keys = self.sort_scores()
             hyps = [self.get_hypothesis(k) for k in keys]
-            hyps = [[data_utils.BOS] + h for h in hyps]
-            dec_seq = torch.from_numpy(np.array(hyps))
+            hyps = [[torch.LongTensor([2]).cuda().squeeze()] + h for h in hyps]
+            dec_seq = torch.stack([torch.stack(hyp) for hyp in hyps],0)
 
         return dec_seq
 
