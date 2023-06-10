@@ -2,6 +2,7 @@ from nltk.translate.bleu_score import sentence_bleu
 from nltk.translate.bleu_score import SmoothingFunction
 from statistics import mean
 import sys
+import sentencepiece as spm
 
 
 global sm_func
@@ -25,17 +26,22 @@ class BLEU(object):
         bleu_3 = []
         bleu_4 = []
         bleu_all = []
+        cnt = 0
         for i in range(len(systems)):
-            B1 = sentence_bleu(refs[i].split(), systems[i].split(), weights = (1, 0, 0, 0), smoothing_function=sm)
+            refs[i] = list(refs[i])
+            systems[i] = list(systems[i])
+            B1 = sentence_bleu(refs[i], systems[i], weights = (1, 0, 0, 0), smoothing_function=sm)
             bleu_1.append(float(B1))
-            B2 = sentence_bleu(refs[i].split(), systems[i].split(), weights = (0, 1, 0, 0), smoothing_function=sm)
+            B2 = sentence_bleu(refs[i], systems[i], weights = (0, 1, 0, 0), smoothing_function=sm)
             bleu_2.append(float(B2))
-            B3 = sentence_bleu(refs[i].split(), systems[i].split(), weights = (0, 0, 1, 0), smoothing_function=sm)
+            B3 = sentence_bleu(refs[i], systems[i], weights = (0, 0, 1, 0), smoothing_function=sm)
             bleu_3.append(float(B3))
-            B4 = sentence_bleu(refs[i].split(), systems[i].split(), weights = (0, 0, 0, 1), smoothing_function=sm)
+            B4 = sentence_bleu(refs[i], systems[i], weights = (0, 0, 0, 1), smoothing_function=sm)
             bleu_4.append(float(B4))    
-            BA = sentence_bleu(refs[i].split(), systems[i].split(), smoothing_function=sm)
+            BA = sentence_bleu(refs[i], systems[i], smoothing_function=sm)
             bleu_all.append(float(BA))   
+            cnt+=1
+        print(cnt,len(systems))
         return mean(bleu_1), mean(bleu_2), mean(bleu_3), mean(bleu_4), mean(bleu_all)
 
     def print_score(self, references, systems, sm):
@@ -61,7 +67,7 @@ class BLEU(object):
 if __name__ == "__main__":
     bleu = BLEU()
     generated_file = sys.argv[1]
-    sm = "None"
+    sm = "sm1"
 
     gen = open(generated_file, 'r', encoding='utf-8')
 

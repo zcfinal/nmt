@@ -1,12 +1,12 @@
 cd ../data
 
 python dataset.py \
---train_src '/data/zclfe/transformer/corpora/datum_en_train.txt' \
---train_tgt '/data/zclfe/transformer/corpora/datum_zh_train.txt' \
---test_src '/data/zclfe/transformer/corpora/datum_en_test.txt' \
---test_tgt '/data/zclfe/transformer/corpora/datum_zh_test.txt' \
---src_vocab_size 32000 \
---tgt_vocab_size 32000 \
+--train_src '/data/zclfe/transformer/corpora/train_en.txt' \
+--train_tgt '/data/zclfe/transformer/corpora/train_zh.txt' \
+--test_src '/data/zclfe/transformer/corpora/test_en.txt' \
+--test_tgt '/data/zclfe/transformer/corpora/test_zh.txt' \
+--src_vocab_size 5000 \
+--tgt_vocab_size 5000 \
 --max_len 64 \
---src_name eng_large \
---tgt_name zh_large 
+--src_name eng_small \
+--tgt_name zh_small

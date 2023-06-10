@@ -162,5 +162,5 @@ def get_testdataloader(args):
 
 if __name__=='__main__':
     args = parse_args()
-    #TranslationDataset(args.train_src,args.train_tgt,args)
-    get_testdataloader(args)
+    TranslationDataset(args.train_src,args.train_tgt,args)
+    #get_testdataloader(args)
