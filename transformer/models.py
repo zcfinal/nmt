@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from data import data_utils
-
+import math
 from transformer.modules import Linear
 from transformer.modules import PosEncoding
 from transformer.layers import EncoderLayer, DecoderLayer
@@ -42,7 +42,7 @@ class Encoder(nn.Module):
 
     def forward(self, enc_inputs, enc_inputs_len, return_attn=False):
         enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
-        enc_outputs = self.src_emb(enc_inputs)
+        enc_outputs = self.src_emb(enc_inputs)* math.sqrt(self.d_model)
         enc_outputs += self.pos_emb(enc_inputs) # Adding positional encoding TODO: note
         enc_outputs = self.dropout_emb(enc_outputs)
 
@@ -68,7 +68,7 @@ class Decoder(nn.Module):
             [self.layer_type(d_k, d_v, d_model, d_ff, n_heads, dropout) for _ in range(n_layers)])
 
     def forward(self, dec_inputs, dec_inputs_len, enc_inputs, enc_outputs, return_attn=False):
-        dec_outputs = self.tgt_emb(dec_inputs)
+        dec_outputs = self.tgt_emb(dec_inputs) * math.sqrt(self.d_model)
         dec_outputs += self.pos_emb(dec_inputs) # Adding positional encoding # TODO: note
         dec_outputs = self.dropout_emb(dec_outputs)
 

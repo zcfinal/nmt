@@ -10,10 +10,13 @@ CUDA_VISIBLE_DEVICES=6 python train.py \
 --max_len 64 \
 --src_name eng_small \
 --tgt_name zh_small \
--model_path '/data/zclfe/transformer/output/small/last.pth' \
--log '/data/zclfe/transformer/output/small' \
+-model_path '/data/zclfe/transformer/output/ls_6/last.pth' \
+-log '/data/zclfe/transformer/output/ls_6' \
 -display_freq 100 \
 -lr 5e-5 \
 -max_epochs 100 \
 -n_layers 6 \
--decode_output '/data/zclfe/transformer/output/small/out.txt' 
+-decode_output '/data/zclfe/transformer/output/ls_6/out.txt' \
+-dropout 0.1 \
+-batch_size 128 \
+-share_proj_weight

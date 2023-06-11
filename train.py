@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
 import torch.optim as optim
+from torch.autograd import Variable
 
 from data import data_utils
 from data.dataset import get_dataloader
@@ -19,6 +20,31 @@ import logging
 
 use_cuda = torch.cuda.is_available()
 
+
+class LabelSmoothing(nn.Module):
+    """Implement label smoothing."""
+
+    def __init__(self, size, padding_idx, smoothing=0.0):
+        super(LabelSmoothing, self).__init__()
+        self.padding_idx = padding_idx
+        self.confidence = 1.0 - smoothing
+        self.smoothing = smoothing
+        self.size = size
+        self.true_dist = None
+        self.softmax = nn.Softmax(1)
+
+    def forward(self, x, target):
+        assert x.size(1) == self.size
+        true_dist = x.data.clone()
+        true_dist.fill_(self.smoothing / (self.size - 2))
+        true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
+        true_dist[:, self.padding_idx] = 0
+        true_dist = true_dist[target.data != self.padding_idx]
+        x = x[target.data != self.padding_idx]
+        true_dist = Variable(true_dist, requires_grad=False)
+        x = self.softmax(x)
+        ce = -torch.sum(true_dist*torch.log(x))
+        return ce
 
 def create_model(args):
     args.src_vocab_size = args.src_vocab_size
@@ -36,6 +62,15 @@ def create_model(args):
     if use_cuda:
         logging.info('Using GPU..')
         model = model.cuda()
+    
+    logging.info('trainable para:')
+    for name,para in model.named_parameters():
+        if para.requires_grad:
+            logging.info(name)
+    logging.info('non trainable para:')
+    for name,para in model.named_parameters():
+        if not para.requires_grad:
+            logging.info(name)
 
     return model, model_state
 
@@ -50,16 +85,17 @@ def main(args):
               'current_epoch:{}, max_epoch:{}'.format(init_epoch, args.max_epochs))
         sys.exit(0)
 
-    criterion = nn.CrossEntropyLoss(size_average=False, ignore_index=0)
+    test_criterion = nn.CrossEntropyLoss(size_average=False, ignore_index=0)
+    train_criterion = LabelSmoothing(args.tgt_vocab_size,0,0.1)
     optimizer = ScheduledOptimizer(optim.Adam(model.trainable_params(), betas=(0.9, 0.98), eps=1e-9),
                                    args.d_model, args.n_layers, args.n_warmup_steps)
     best_eval = 1e8
     for epoch in range(init_epoch + 1, args.max_epochs + 1):
-        train_loss, train_sents = train(model, criterion, optimizer, train_iter, model_state)
+        train_loss, train_sents = train(model, train_criterion, optimizer, train_iter, model_state)
         logging.info('END Epoch {}\n'.format(epoch)+ 'Train_ppl: {0:.2f}\n'.format(train_loss)+ \
               'Sents seen: {}\n'.format(train_sents))
         
-        eval_loss, eval_sents = eval(model, criterion, dev_iter)
+        eval_loss, eval_sents = eval(model, test_criterion, dev_iter)
         logging.info('END Epoch {}\n'.format(epoch)+ 'Eval_ppl: {0:.2f}\n'.format(eval_loss)+ \
               'Sents seen: {}\n'.format(eval_sents))
 

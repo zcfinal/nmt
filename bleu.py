@@ -1,8 +1,9 @@
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, corpus_bleu
 from nltk.translate.bleu_score import SmoothingFunction
 from statistics import mean
 import sys
 import sentencepiece as spm
+import sacrebleu
 
 
 global sm_func
@@ -28,8 +29,8 @@ class BLEU(object):
         bleu_all = []
         cnt = 0
         for i in range(len(systems)):
-            refs[i] = list(refs[i])
-            systems[i] = list(systems[i])
+            refs[i] = refs[i].split()
+            systems[i] = systems[i].split()
             B1 = sentence_bleu(refs[i], systems[i], weights = (1, 0, 0, 0), smoothing_function=sm)
             bleu_1.append(float(B1))
             B2 = sentence_bleu(refs[i], systems[i], weights = (0, 1, 0, 0), smoothing_function=sm)
@@ -44,30 +45,22 @@ class BLEU(object):
         print(cnt,len(systems))
         return mean(bleu_1), mean(bleu_2), mean(bleu_3), mean(bleu_4), mean(bleu_all)
 
-    def print_score(self, references, systems, sm):
-
-        gen = open(systems, 'r', encoding='utf-8')
-        ref = open(references, 'r', encoding='utf-8')
-    
-        gen_corpus = []
-        ref_corpus = []
-
-        for g, r in zip(gen, ref):
-            gen_corpus.append(g.strip())
-            ref_corpus.append(r.strip())   
+    def print_score(self, ref_corpus, gen_corpus, sm):
         
-
-        b1, b2, b3, b4, ba = self.compute_bleu(ref_corpus, gen_corpus, sm_func[sm])
+        b1= corpus_bleu(ref_corpus, gen_corpus, weights = (1, 0, 0, 0), smoothing_function=sm)
+        b2= corpus_bleu(ref_corpus, gen_corpus, weights = (0, 1, 0, 0), smoothing_function=sm)
+        b3 = corpus_bleu(ref_corpus, gen_corpus, weights = (0, 0, 1, 0), smoothing_function=sm)
+        b4 = corpus_bleu(ref_corpus, gen_corpus, weights = (0, 0, 0, 1), smoothing_function=sm)
+        ba = corpus_bleu(ref_corpus, gen_corpus, weights = (0.25, 0.25, 0.25, 0.25), smoothing_function=sm)
         print("------------------------------------------")
-        print("S_FUNC: %s, BLEU-ALL: %02.3f, BLEU-1: %02.3f, BLEU-2: %02.3f, BLEU-3: %02.3f, BLEU-4: %02.3f" \
-            %(sm, ba * 100, b1 * 100, b2 * 100, b3 * 100, b4 * 100))
-        gen.close()
-        ref.close()
+        print(" BLEU-ALL: %02.3f, BLEU-1: %02.3f, BLEU-2: %02.3f, BLEU-3: %02.3f, BLEU-4: %02.3f" \
+            %(ba * 100, b1 * 100, b2 * 100, b3 * 100, b4 * 100))
+
 
 if __name__ == "__main__":
     bleu = BLEU()
     generated_file = sys.argv[1]
-    sm = "sm1"
+    sm = 'sm2'
 
     gen = open(generated_file, 'r', encoding='utf-8')
 
@@ -87,8 +80,12 @@ if __name__ == "__main__":
         else:
             ref_corpus.append(g.strip())   
 
+    print(sacrebleu.corpus_bleu(ref_corpus, gen_corpus).score)
+
     b1, b2, b3, b4, ba = bleu.compute_bleu(ref_corpus, gen_corpus, sm_func[sm])
     print("------------------------------------------")
     print("S_FUNC: %s, BLEU-ALL: %02.3f, BLEU-1: %02.3f, BLEU-2: %02.3f, BLEU-3: %02.3f, BLEU-4: %02.3f" \
         %(sm, ba * 100, b1 * 100, b2 * 100, b3 * 100, b4 * 100))
+    print('corpus')
+    bleu.print_score(ref_corpus,gen_corpus,sm_func['sm7'])
     gen.close()
